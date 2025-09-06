@@ -3,6 +3,7 @@ console.log(`Function "image-generator" up and running!`);
 import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generateImageWithGemini } from "./src/api/generateImageWithGemini.ts";
+import { upsertUser } from "./src/database/users.ts";
 import { deleteImageFromStorage } from "./src/storage/deleteImageFromStorage.ts";
 import { saveImageToStorage } from "./src/storage/saveImageToStorage.ts";
 import { getImageUrlFromTelegram } from "./src/telegram/getImageUrlFromTelegram.ts";
@@ -20,8 +21,8 @@ bot.on("message", async (ctx) => {
   const chatType = ctx.message.chat.type;
   console.log(`${chatType} message`, ctx.message.chat.id);
 
-  // // Обрабатываем пользователя при каждом сообщении
-  // await upsertUser(ctx, supabase); // TODO: add upsert user handler
+  // Обрабатываем пользователя при каждом сообщении
+  await upsertUser(ctx, supabase);
 
   // Handle successful payment
   if (ctx.message.successful_payment) {
