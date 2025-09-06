@@ -3,6 +3,7 @@ console.log(`Function "image-generator" up and running!`);
 import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generateImageWithGemini } from "./src/api/generateImageWithGemini.ts";
+import { processSuccessfulPayment } from "./src/database/payments.ts";
 import { upsertUser } from "./src/database/users.ts";
 import { deleteImageFromStorage } from "./src/storage/deleteImageFromStorage.ts";
 import { saveImageToStorage } from "./src/storage/saveImageToStorage.ts";
@@ -26,7 +27,25 @@ bot.on("message", async (ctx) => {
 
   // Handle successful payment
   if (ctx.message.successful_payment) {
-    // TODO: add successful payment handler
+    try {
+      const payment = ctx.message.successful_payment;
+
+      // Обрабатываем успешный платеж
+      const result = await processSuccessfulPayment(supabase, payment);
+
+      if (result.success) {
+        await ctx.reply(
+          `✅ Платеж успешно обработан! Купленный тариф: ${result.planName}`,
+        );
+      } else {
+        await ctx.reply(`❌ Ошибка при обработке платежа: ${result.message}`);
+      }
+    } catch (error) {
+      console.error("Ошибка при обработке успешного платежа:", error);
+      await ctx.reply(
+        "✅ Платеж получен, но произошла ошибка при обновлении статуса.",
+      );
+    }
   }
 
   // Handle text messages
