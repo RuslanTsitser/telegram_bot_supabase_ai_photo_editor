@@ -4,7 +4,10 @@ import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generateImageWithGemini } from "./src/api/generateImageWithGemini.ts";
 import { processSuccessfulPayment } from "./src/database/payments.ts";
-import { getSubscriptionPlans } from "./src/database/plans.ts";
+import {
+  getSubscriptionPlan,
+  getSubscriptionPlans,
+} from "./src/database/plans.ts";
 import { upsertUser } from "./src/database/users.ts";
 import { deleteImageFromStorage } from "./src/storage/deleteImageFromStorage.ts";
 import { saveImageToStorage } from "./src/storage/saveImageToStorage.ts";
@@ -161,14 +164,8 @@ bot.on("callback_query", async (ctx) => {
   if (ctx.callbackQuery.data?.startsWith("plan_")) {
     const planId = ctx.callbackQuery.data.replace("plan_", "");
 
-    // Получаем информацию о тарифе
-    const { data: plan, error } = await supabase
-      .from("subscription_plans")
-      .select("*")
-      .eq("id", planId)
-      .single();
-
-    if (error || !plan) {
+    const plan = await getSubscriptionPlan(supabase, planId);
+    if (!plan) {
       await ctx.answerCallbackQuery("❌ Ошибка при получении тарифа");
       return;
     }
