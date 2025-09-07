@@ -8,7 +8,11 @@ import {
   getSubscriptionPlan,
   getSubscriptionPlans,
 } from "./src/database/plans.ts";
-import { getPremiumStatus } from "./src/database/premium.ts";
+import {
+  canUserGenerate,
+  decrementGenerationLimit,
+  getPremiumStatus,
+} from "./src/database/premium.ts";
 import { getUserByTelegramId, upsertUser } from "./src/database/users.ts";
 import { deleteImageFromStorage } from "./src/storage/deleteImageFromStorage.ts";
 import { saveImageToStorage } from "./src/storage/saveImageToStorage.ts";
@@ -140,6 +144,23 @@ bot.on("message", async (ctx) => {
 
   // Handle photo messages
   if (ctx.message.photo) {
+    const userId = ctx.from?.id;
+    const user = await getUserByTelegramId(supabase, userId);
+    if (!user) {
+      await ctx.reply("Пользователь не найден");
+      return;
+    }
+    const limits = await canUserGenerate(supabase, user.id);
+    if (!limits) {
+      await ctx.reply("Информация о возможности генерации не найдена");
+      return;
+    }
+
+    if (!limits.canGenerate) {
+      await ctx.reply(limits.reason || "У тебя нет доступа к генерации");
+      return;
+    }
+
     const photo = ctx.message.photo[ctx.message.photo.length - 1];
     const photoUrl = await getImageUrlFromTelegram(photo.file_id, bot.token);
 
@@ -176,6 +197,9 @@ bot.on("message", async (ctx) => {
         await ctx.replyWithDocument(imageUrl, {
           caption: "Ваше фото готово!",
         });
+        if (limits.limit !== -1) {
+          await decrementGenerationLimit(supabase, user.id);
+        }
         if (path) {
           // delete image from storage
           await deleteImageFromStorage(supabase, path);
