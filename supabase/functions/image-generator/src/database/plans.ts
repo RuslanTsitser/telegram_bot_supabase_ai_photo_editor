@@ -18,3 +18,17 @@ export async function getSubscriptionPlan(
 
   return plan;
 }
+
+export async function getSubscriptionPlans(
+  supabase: SupabaseClient,
+): Promise<SubscriptionPlan[]> {
+  const { data, error } = await supabase
+    .from("subscription_plans")
+    .select("*");
+
+  if (error) {
+    return [];
+  }
+
+  return data;
+}

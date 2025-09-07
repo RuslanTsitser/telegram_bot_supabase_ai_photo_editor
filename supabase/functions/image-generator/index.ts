@@ -4,10 +4,13 @@ import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generateImageWithGemini } from "./src/api/generateImageWithGemini.ts";
 import { processSuccessfulPayment } from "./src/database/payments.ts";
+import { getSubscriptionPlans } from "./src/database/plans.ts";
 import { upsertUser } from "./src/database/users.ts";
 import { deleteImageFromStorage } from "./src/storage/deleteImageFromStorage.ts";
 import { saveImageToStorage } from "./src/storage/saveImageToStorage.ts";
 import { getImageUrlFromTelegram } from "./src/telegram/getImageUrlFromTelegram.ts";
+import { createSubscriptionInvoice } from "./src/telegram/subscriptionHandlers.ts";
+import { formatWithDeclension } from "./src/utils/declension.ts";
 import { generateFileName } from "./src/utils/storage.ts";
 
 const bot = new Bot(Deno.env.get("BOT_TOKEN") || "");
@@ -60,7 +63,40 @@ bot.on("message", async (ctx) => {
     }
 
     if (message === "/subscriptions") {
-      // TODO: add subscriptions handler
+      const plans = await getSubscriptionPlans(supabase);
+      let subscriptionMessage = "💳 Доступные тарифы:\n\n";
+
+      plans?.forEach((plan) => {
+        const emoji = plan.price === 0 ? "🆓" : "💳";
+        if (plan.type === "subscription") {
+          subscriptionMessage += `${emoji} ${plan.name} (${
+            formatWithDeclension(plan.value, ["день", "дня", "дней"])
+          }) - ${plan.price}₽\n`;
+        } else if (plan.type === "one_time") {
+          subscriptionMessage += `${emoji} ${plan.name} (${
+            formatWithDeclension(plan.value, [
+              "генерация",
+              "генерации",
+              "генераций",
+            ])
+          }) - ${plan.price}₽\n`;
+        }
+        if (plan.description) {
+          subscriptionMessage += `   ${plan.description}\n`;
+        }
+        subscriptionMessage += "\n";
+      });
+
+      // Создаем inline кнопки для каждого тарифа
+      const keyboard = {
+        inline_keyboard: plans?.map((plan) => [{
+          text: `💳 Купить ${plan.name}`,
+          callback_data: `plan_${plan.id}`,
+        }]) || [],
+      };
+
+      await ctx.reply(subscriptionMessage, { reply_markup: keyboard });
+      return;
     }
 
     if (message === "/limits") {
@@ -126,8 +162,24 @@ bot.on("message", async (ctx) => {
 });
 
 // Обработчик для inline кнопок подписок
-bot.on("callback_query", async (_) => {
-  // TODO: add callback query handler
+bot.on("callback_query", async (ctx) => {
+  if (ctx.callbackQuery.data?.startsWith("plan_")) {
+    const planId = ctx.callbackQuery.data.replace("plan_", "");
+
+    // Получаем информацию о тарифе
+    const { data: plan, error } = await supabase
+      .from("subscription_plans")
+      .select("*")
+      .eq("id", planId)
+      .single();
+
+    if (error || !plan) {
+      await ctx.answerCallbackQuery("❌ Ошибка при получении тарифа");
+      return;
+    }
+
+    await createSubscriptionInvoice(ctx, plan);
+  }
 });
 
 // Webhook для проверки перед оплатой
