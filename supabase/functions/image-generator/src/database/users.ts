@@ -6,17 +6,17 @@ import { User } from "./db_types.ts";
 export async function upsertUser(ctx: Context, supabase: SupabaseClient) {
   if (!ctx.from) return;
 
-  try {
-    await supabase.rpc("upsert_user", {
-      telegram_id_param: ctx.from.id,
-      telegram_username_param: ctx.from.username || null,
-      telegram_first_name_param: ctx.from.first_name || null,
-      telegram_last_name_param: ctx.from.last_name || null,
-      telegram_photo_url_param: null,
-    });
-  } catch (error) {
-    console.error("Ошибка при создании/обновлении пользователя:", error);
-  }
+  console.log("upsertUser", ctx.from);
+  const { data, error } = await supabase.rpc("upsert_user", {
+    telegram_id_param: ctx.from.id,
+    telegram_username_param: ctx.from.username || null,
+    telegram_first_name_param: ctx.from.first_name || null,
+    telegram_last_name_param: ctx.from.last_name || null,
+    telegram_photo_url_param: null,
+  });
+
+  if (error) console.error(error);
+  else console.log(data);
 }
 
 // Функция для получения пользователя по Telegram ID
