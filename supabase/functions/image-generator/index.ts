@@ -102,8 +102,10 @@ bot.on("message", async (ctx) => {
     }
 
     if (!message.startsWith("/")) {
-      // TODO: add text message handler
-      await ctx.reply("Hello, world!");
+      // TODO: add text message handler. Generate image with Gemini without picture.
+      await ctx.reply(
+        "Пришлите картинку и описание, чтобы я сгенерировал для тебя новое фото",
+      );
       return;
     }
   }
