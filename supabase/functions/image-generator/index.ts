@@ -8,7 +8,7 @@ import {
   getSubscriptionPlan,
   getSubscriptionPlans,
 } from "./src/database/plans.ts";
-import { upsertUser } from "./src/database/users.ts";
+import { getUserByTelegramId, upsertUser } from "./src/database/users.ts";
 import { deleteImageFromStorage } from "./src/storage/deleteImageFromStorage.ts";
 import { saveImageToStorage } from "./src/storage/saveImageToStorage.ts";
 import { getImageUrlFromTelegram } from "./src/telegram/getImageUrlFromTelegram.ts";
@@ -175,8 +175,33 @@ bot.on("callback_query", async (ctx) => {
 });
 
 // Webhook для проверки перед оплатой
-bot.on("pre_checkout_query", async (_) => {
-  // TODO: add pre checkout query handler
+bot.on("pre_checkout_query", async (ctx) => {
+  console.log("pre_checkout_query received");
+
+  try {
+    // Получаем данные из payload
+    const payload = ctx.preCheckoutQuery.invoice_payload;
+    const [planId, userId] = payload.split("_");
+
+    const user = await getUserByTelegramId(supabase, parseInt(userId));
+    if (!user) {
+      await ctx.answerPreCheckoutQuery(false, "Пользователь не найден");
+      return;
+    }
+
+    const plan = await getSubscriptionPlan(supabase, planId);
+    if (!plan) {
+      await ctx.answerPreCheckoutQuery(false, "Тариф не найден или неактивен");
+      return;
+    }
+
+    // Подтверждаем возможность оплаты
+    await ctx.answerPreCheckoutQuery(true);
+    console.log("Pre-checkout approved for plan:", planId);
+  } catch (error) {
+    console.error("Error in pre_checkout_query:", error);
+    await ctx.answerPreCheckoutQuery(false, "Ошибка при проверке платежа");
+  }
 });
 
 bot.on("edited_message", async (_) => {
