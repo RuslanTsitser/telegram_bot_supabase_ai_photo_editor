@@ -8,6 +8,7 @@ import {
   getSubscriptionPlan,
   getSubscriptionPlans,
 } from "./src/database/plans.ts";
+import { getPremiumStatus } from "./src/database/premium.ts";
 import { getUserByTelegramId, upsertUser } from "./src/database/users.ts";
 import { deleteImageFromStorage } from "./src/storage/deleteImageFromStorage.ts";
 import { saveImageToStorage } from "./src/storage/saveImageToStorage.ts";
@@ -98,7 +99,34 @@ bot.on("message", async (ctx) => {
     }
 
     if (message === "/limits") {
-      // TODO: add limits handler
+      const userId = ctx.from?.id;
+      const user = await getUserByTelegramId(supabase, userId);
+      if (!user) {
+        await ctx.reply("Пользователь не найден");
+        return;
+      }
+      const premiumStatus = await getPremiumStatus(supabase, user.id);
+      if (!premiumStatus) {
+        await ctx.reply("Информация о лимитах не найдена");
+        return;
+      }
+      let message = `Текущий статус:\n`;
+      if (premiumStatus.is_premium) {
+        message += `- Премиум навсегда. Докупать ничего не нужно`;
+      }
+      if (premiumStatus.premium_expires_at) {
+        const expiresAt = new Date(premiumStatus.premium_expires_at);
+        const now = new Date();
+        if (expiresAt > now) {
+          message += `- Подписка до ${expiresAt.toLocaleDateString()}`;
+        }
+      }
+
+      message +=
+        `- Количество доступных генераций: ${premiumStatus.generation_limit}`;
+
+      await ctx.reply(message);
+      return;
     }
 
     if (!message.startsWith("/")) {
