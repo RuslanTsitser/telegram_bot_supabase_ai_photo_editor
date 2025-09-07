@@ -10,7 +10,6 @@ import { deleteImageFromStorage } from "./src/storage/deleteImageFromStorage.ts"
 import { saveImageToStorage } from "./src/storage/saveImageToStorage.ts";
 import { getImageUrlFromTelegram } from "./src/telegram/getImageUrlFromTelegram.ts";
 import { createSubscriptionInvoice } from "./src/telegram/subscriptionHandlers.ts";
-import { formatWithDeclension } from "./src/utils/declension.ts";
 import { generateFileName } from "./src/utils/storage.ts";
 
 const bot = new Bot(Deno.env.get("BOT_TOKEN") || "");
@@ -69,17 +68,13 @@ bot.on("message", async (ctx) => {
       plans?.forEach((plan) => {
         const emoji = plan.price === 0 ? "🆓" : "💳";
         if (plan.type === "subscription") {
-          subscriptionMessage += `${emoji} ${plan.name} (${
-            formatWithDeclension(plan.value, ["день", "дня", "дней"])
-          }) - ${plan.price}₽\n`;
+          subscriptionMessage += `${emoji} ${plan.name} - ${
+            plan.price / 100
+          }₽\n`;
         } else if (plan.type === "one_time") {
-          subscriptionMessage += `${emoji} ${plan.name} (${
-            formatWithDeclension(plan.value, [
-              "генерация",
-              "генерации",
-              "генераций",
-            ])
-          }) - ${plan.price}₽\n`;
+          subscriptionMessage += `${emoji} ${plan.name} - ${
+            plan.price / 100
+          }₽\n`;
         }
         if (plan.description) {
           subscriptionMessage += `   ${plan.description}\n`;
