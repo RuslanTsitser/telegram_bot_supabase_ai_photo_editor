@@ -97,7 +97,6 @@ func UploadFileToGoogleAI(bytes []byte, mimeType string, caption string) ([]byte
 	// Конфигурация для генерации изображений
 	config := &genai.GenerateContentConfig{
 		ResponseModalities: []string{
-			"TEXT",
 			"IMAGE",
 		},
 	}
@@ -127,7 +126,7 @@ func UploadFileToGoogleAI(bytes []byte, mimeType string, caption string) ([]byte
 		}
 	}
 
-	return nil, fmt.Errorf("no image data in response")
+	return nil, fmt.Errorf("no image data in AI response")
 }
 
 // API функция для обработки HTTP запросов
@@ -199,7 +198,7 @@ func respondWithError(w http.ResponseWriter, errorMsg, detail string) {
 	w.WriteHeader(http.StatusBadRequest)
 	json.NewEncoder(w).Encode(Response{
 		Success: false,
-		Error:   errorMsg,
+		Error:   errorMsg + ": " + detail,
 	})
 }
 
