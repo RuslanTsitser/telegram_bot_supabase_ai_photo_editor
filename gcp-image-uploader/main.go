@@ -14,9 +14,10 @@ import (
 
 // Request структура для входящего запроса
 type Request struct {
-	ImageURL string `json:"imageUrl"`
-	Caption  string `json:"caption,omitempty"`
-	Model    string `json:"model,omitempty"`
+	ImageURL    string   `json:"imageUrl"`
+	Caption     string   `json:"caption,omitempty"`
+	Model       string   `json:"model,omitempty"`
+	OtherImages []string `json:"otherImages,omitempty"`
 }
 
 // Response структура для ответа
@@ -66,8 +67,13 @@ func GetImageBytes(url string) ([]byte, string, error) {
 	return body, mimeType, nil
 }
 
+type UserImageData struct {
+	Bytes    []byte
+	MimeType string
+}
+
 // Запрос в Google AI
-func UploadFileToGoogleAI(bytes []byte, mimeType string, caption string) ([]byte, error) {
+func UploadFileToGoogleAI(userImageDataList []UserImageData, caption string) ([]byte, error) {
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	ctx := context.Background()
 	if apiKey == "" {
@@ -82,12 +88,19 @@ func UploadFileToGoogleAI(bytes []byte, mimeType string, caption string) ([]byte
 	}
 
 	fmt.Println("Caption:", caption)
-	fmt.Println("MimeType:", mimeType)
-	fmt.Println("Bytes:", len(bytes))
 
+	firstData := userImageDataList[0]
+
+	// генерируем parts на основе нескольких изображений
 	parts := []*genai.Part{
-		genai.NewPartFromBytes(bytes, mimeType),
+		genai.NewPartFromBytes(firstData.Bytes, firstData.MimeType),
 		genai.NewPartFromText(caption),
+	}
+
+	if len(userImageDataList) > 1 {
+		for _, userImageData := range userImageDataList[1:] {
+			parts = append(parts, genai.NewPartFromBytes(userImageData.Bytes, userImageData.MimeType))
+		}
 	}
 
 	contents := []*genai.Content{
@@ -170,9 +183,32 @@ func uploadImageHandler(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, "Failed to download image", err.Error())
 		return
 	}
+
+	userImageDataList := []UserImageData{
+		{
+			Bytes:    imageBytes,
+			MimeType: mimeType,
+		},
+	}
+
+	if len(req.OtherImages) > 0 {
+		for _, otherImage := range req.OtherImages {
+			otherImageBytes, otherImageMimeType, err := GetImageBytes(otherImage)
+			if err != nil {
+				fmt.Println("Error downloading other image:", err)
+				respondWithError(w, "Failed to download other image", err.Error())
+				return
+			}
+			userImageDataList = append(userImageDataList, UserImageData{
+				Bytes:    otherImageBytes,
+				MimeType: otherImageMimeType,
+			})
+		}
+	}
+
 	fmt.Println("Image downloaded successfully, size:", len(imageBytes), "bytes, MIME type:", mimeType)
 
-	resultBytes, err := UploadFileToGoogleAI(imageBytes, mimeType, req.Caption)
+	resultBytes, err := UploadFileToGoogleAI(userImageDataList, req.Caption)
 	if err != nil {
 		fmt.Println("Error uploading to Google AI:", err)
 		respondWithError(w, "Failed to upload to Google AI", err.Error())
