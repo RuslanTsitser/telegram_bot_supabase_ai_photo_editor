@@ -16,6 +16,7 @@ interface UploadResponse {
 export async function generateImageWithGemini(
   imageUrl: string,
   caption: string,
+  otherImages?: string[],
 ): Promise<{ imageData: string; mimeType: string } | null> {
   try {
     const apiUrl = Deno.env.get("IMAGE_UPLOADER_API_URL");
@@ -25,18 +26,24 @@ export async function generateImageWithGemini(
     }
 
     console.log("Uploading image to Google AI:", imageUrl, caption);
+    console.log("Other images count:", otherImages?.length || 0);
+    console.log("Other images:", otherImages);
     const url = `${apiUrl}/upload`;
     console.log("API URL:", url);
+
+    const requestBody = {
+      imageUrl: imageUrl,
+      caption: caption,
+      otherImages: otherImages,
+    };
+    console.log("Request body:", JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        imageUrl: imageUrl,
-        caption: caption,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     console.log("Response:", response);

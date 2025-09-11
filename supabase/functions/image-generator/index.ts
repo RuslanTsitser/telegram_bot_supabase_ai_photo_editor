@@ -2,7 +2,14 @@ console.log(`Function "image-generator" up and running!`);
 
 import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { processImageGroup } from "./processImageGroup.ts";
 import { generateImageWithGemini } from "./src/api/generateImageWithGemini.ts";
+import {
+  addImageToGroup,
+  createImageGroup,
+  getImageGroupByMediaId,
+  updateGroupCaption,
+} from "./src/database/imageGroups.ts";
 import { processSuccessfulPayment } from "./src/database/payments.ts";
 import {
   getSubscriptionPlan,
@@ -144,6 +151,7 @@ bot.on("message", async (ctx) => {
 
   // Handle photo messages
   if (ctx.message.photo) {
+    const mediaGroup = ctx.message.media_group_id;
     const userId = ctx.from?.id;
     const user = await getUserByTelegramId(supabase, userId);
     if (!user) {
@@ -161,6 +169,76 @@ bot.on("message", async (ctx) => {
       return;
     }
 
+    // Если это группа изображений
+    if (mediaGroup) {
+      // Проверяем, существует ли уже группа
+      let group = await getImageGroupByMediaId(supabase, mediaGroup);
+
+      if (!group) {
+        // Создаем новую группу
+        group = await createImageGroup(supabase, mediaGroup, user.id);
+        if (!group) {
+          await ctx.reply("Ошибка при создании группы изображений");
+          return;
+        }
+      }
+
+      // Добавляем изображение в группу
+      const photo = ctx.message.photo[ctx.message.photo.length - 1];
+      const orderIndex = group.total_images; // Используем текущее количество как индекс
+
+      console.log(
+        `Adding image to group ${group.id}, order: ${orderIndex}, file_id: ${photo.file_id}`,
+      );
+      await addImageToGroup(supabase, group.id, photo.file_id, orderIndex);
+
+      // Обновляем caption если есть
+      if (ctx.message.caption) {
+        console.log(
+          `Updating caption for group ${group.id}: ${ctx.message.caption}`,
+        );
+        await updateGroupCaption(supabase, group.id, ctx.message.caption);
+      }
+
+      // Обновляем счетчик изображений
+      const newCount = group.total_images + 1;
+      console.log(
+        `Updating group ${group.id} image count from ${group.total_images} to ${newCount}`,
+      );
+      await supabase
+        .from("image_groups")
+        .update({ total_images: newCount })
+        .eq("id", group.id);
+
+      // Ждем 2 секунды и обрабатываем группу
+      setTimeout(async () => {
+        try {
+          // Проверяем, что группа все еще в статусе "collecting" (защита от race condition)
+          const currentGroup = await getImageGroupByMediaId(
+            supabase,
+            mediaGroup,
+          );
+          if (currentGroup && currentGroup.status === "collecting") {
+            console.log(
+              `Processing group ${currentGroup.id} with ${currentGroup.total_images} images`,
+            );
+            await processImageGroup(
+              supabase,
+              bot,
+              currentGroup.id,
+              currentGroup.user_id,
+            );
+          }
+        } catch (error) {
+          console.error("Error processing group after timeout:", error);
+        }
+      }, 2000);
+
+      // НЕ отвечаем пользователю - ждем завершения группы
+      return;
+    }
+
+    // Обработка одиночного изображения (существующая логика)
     const photo = ctx.message.photo[ctx.message.photo.length - 1];
     const photoUrl = await getImageUrlFromTelegram(photo.file_id, bot.token);
 
