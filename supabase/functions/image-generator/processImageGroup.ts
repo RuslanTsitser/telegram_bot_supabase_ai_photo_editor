@@ -24,10 +24,15 @@ export async function processImageGroup(
   userId: string,
 ) {
   try {
+    await bot.api.sendMessage(
+      userId,
+      "Понял, обрабатываю несколько фотографий...",
+    );
     // Получаем все изображения группы
     const groupImages = await getGroupImages(supabase, groupId);
     if (groupImages.length === 0) {
       console.log("No images found in group:", groupId);
+      await bot.api.sendMessage(userId, "Не найдено изображений в группе");
       return;
     }
 
@@ -54,6 +59,10 @@ export async function processImageGroup(
     if (imageUrls.length === 0) {
       console.log("No valid image URLs found for group:", groupId);
       await updateGroupStatus(supabase, groupId, "failed");
+      await bot.api.sendMessage(
+        userId,
+        "Не найдено валидных URL изображений для группы",
+      );
       return;
     }
 
@@ -66,6 +75,11 @@ export async function processImageGroup(
 
     if (groupError) {
       console.error("Error getting group for caption:", groupError);
+      await bot.api.sendMessage(
+        userId,
+        "Ошибка при получении группы для caption",
+      );
+      return;
     }
 
     console.log(`Retrieved group for caption:`, group);
@@ -88,6 +102,10 @@ export async function processImageGroup(
     if (!uploadResult) {
       console.log("Failed to generate image for group:", groupId);
       await updateGroupStatus(supabase, groupId, "failed");
+      await bot.api.sendMessage(
+        userId,
+        "Ошибка при генерации изображения для группы",
+      );
       return;
     }
 
@@ -102,6 +120,10 @@ export async function processImageGroup(
     if (!result?.publicUrl) {
       console.log("Failed to save generated image for group:", groupId);
       await updateGroupStatus(supabase, groupId, "failed");
+      await bot.api.sendMessage(
+        userId,
+        "Ошибка при сохранении сгенерированного изображения для группы",
+      );
       return;
     }
 
@@ -114,6 +136,7 @@ export async function processImageGroup(
 
     if (userError || !user) {
       console.error(`User not found for userId: ${userId}`, userError);
+      await bot.api.sendMessage(userId, "Пользователь не найден для userId");
       return;
     }
 
