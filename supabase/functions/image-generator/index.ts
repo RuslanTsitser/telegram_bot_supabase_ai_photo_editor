@@ -227,6 +227,7 @@ bot.on("message", async (ctx) => {
               bot,
               currentGroup.id,
               currentGroup.user_id,
+              user.telegram_id,
             );
           }
         } catch (error) {

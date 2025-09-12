@@ -22,10 +22,11 @@ export async function processImageGroup(
   bot: Bot,
   groupId: string,
   userId: string,
+  telegramUserId: number,
 ) {
   try {
     await bot.api.sendMessage(
-      userId,
+      telegramUserId,
       "Понял, обрабатываю несколько фотографий...",
     );
     // Получаем все изображения группы
