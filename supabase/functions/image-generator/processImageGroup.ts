@@ -84,7 +84,8 @@ export async function processImageGroup(
     }
 
     console.log(`Retrieved group for caption:`, group);
-    const caption = group?.caption || "Generate a description of the photos";
+    const caption = group?.caption ||
+      "Верни такое же изображение в мультяшном стилеs";
     console.log(`Using caption: "${caption}"`);
 
     console.log(

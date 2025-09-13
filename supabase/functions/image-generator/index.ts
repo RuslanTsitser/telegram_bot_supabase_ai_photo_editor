@@ -249,7 +249,7 @@ bot.on("message", async (ctx) => {
       // Загружаем изображение через внешний API
       const uploadResult = await generateImageWithGemini(
         photoUrl,
-        caption || "Generate a description of the photo",
+        caption || "Верни такое же изображение в мультяшном стиле",
       );
       if (!uploadResult) {
         await ctx.reply("Ошибка при загрузке изображения в Google AI");

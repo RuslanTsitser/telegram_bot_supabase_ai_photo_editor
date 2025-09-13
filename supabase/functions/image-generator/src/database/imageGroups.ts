@@ -192,7 +192,7 @@ export async function updateGroupCaption(
     // Обновляем только если caption пустой или null
     if (
       !existingGroup.caption ||
-      existingGroup.caption === "Generate a description of the photos"
+      existingGroup.caption === "Верни такое же изображение в мультяшном стилеs"
     ) {
       const { error } = await supabase
         .from("image_groups")
