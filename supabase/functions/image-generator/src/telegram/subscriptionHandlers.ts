@@ -6,6 +6,7 @@ import { formatWithDeclension } from "../utils/declension.ts";
 export async function createSubscriptionInvoice(
   ctx: Context,
   plan: SubscriptionPlan,
+  test: boolean,
 ) {
   const userId = ctx.from?.id;
   if (!userId) return;
@@ -30,7 +31,9 @@ export async function createSubscriptionInvoice(
     }
 
     const payload = `${plan.id}_${userId}`;
-    const token = Deno.env.get("YOOKASSA_PROVIDER_TOKEN") || "";
+    const token = test
+      ? Deno.env.get("YOOKASSA_PROVIDER_TOKEN_TEST") || ""
+      : Deno.env.get("YOOKASSA_PROVIDER_TOKEN") || "";
     const currency = "RUB";
 
     await ctx.api.sendInvoice(

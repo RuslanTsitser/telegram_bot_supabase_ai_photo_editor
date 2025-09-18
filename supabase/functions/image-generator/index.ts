@@ -76,7 +76,7 @@ bot.on("message", async (ctx) => {
       return;
     }
 
-    if (message === "/subscriptions") {
+    if (message === "/subscriptions" || message === "/subscriptions_test") {
       const plans = await getSubscriptionPlans(supabase);
       let subscriptionMessage = "💳 Доступные тарифы:\n\n";
 
@@ -96,12 +96,13 @@ bot.on("message", async (ctx) => {
         }
         subscriptionMessage += "\n";
       });
+      const isTest = message === "/subscriptions_test";
 
       // Создаем inline кнопки для каждого тарифа
       const keyboard = {
         inline_keyboard: plans?.map((plan) => [{
           text: `💳 Купить ${plan.name}`,
-          callback_data: `plan_${plan.id}`,
+          callback_data: isTest ? `plan_test_${plan.id}` : `plan_${plan.id}`,
         }]) || [],
       };
 
@@ -294,8 +295,20 @@ bot.on("message", async (ctx) => {
 
 // Обработчик для inline кнопок подписок
 bot.on("callback_query", async (ctx) => {
-  if (ctx.callbackQuery.data?.startsWith("plan_")) {
-    const planId = ctx.callbackQuery.data.replace("plan_", "");
+  let planId: string;
+  let isTest: boolean;
+
+  if (
+    ctx.callbackQuery.data?.startsWith("plan_") ||
+    ctx.callbackQuery.data?.startsWith("plan_test_")
+  ) {
+    if (ctx.callbackQuery.data?.startsWith("plan_test_")) {
+      isTest = true;
+      planId = ctx.callbackQuery.data.replace("plan_test_", "");
+    } else {
+      isTest = false;
+      planId = ctx.callbackQuery.data.replace("plan_", "");
+    }
 
     const plan = await getSubscriptionPlan(supabase, planId);
     if (!plan) {
@@ -303,7 +316,7 @@ bot.on("callback_query", async (ctx) => {
       return;
     }
 
-    await createSubscriptionInvoice(ctx, plan);
+    await createSubscriptionInvoice(ctx, plan, isTest);
   }
 });
 
