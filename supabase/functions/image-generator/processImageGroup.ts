@@ -145,6 +145,7 @@ export async function processImageGroup(
     console.log(
       `Sending result to user ${user.telegram_id} (${user.telegram_first_name})`,
     );
+    await bot.api.sendPhoto(user.telegram_id, result.publicUrl);
     await bot.api.sendDocument(user.telegram_id, result.publicUrl, {
       caption: "Ваше фото готово!",
     });

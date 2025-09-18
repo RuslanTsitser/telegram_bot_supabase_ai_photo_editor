@@ -259,6 +259,7 @@ bot.on("message", async (ctx) => {
         }
 
         // Отправляем изображение по URL
+        await ctx.replyWithPhoto(imageUrl);
         await ctx.replyWithDocument(imageUrl, {
           caption: "Ваше фото готово!",
         });
