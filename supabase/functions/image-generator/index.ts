@@ -78,30 +78,15 @@ bot.on("message", async (ctx) => {
 
     if (message === "/subscriptions" || message === "/subscriptions_test") {
       const plans = await getSubscriptionPlans(supabase);
-      let subscriptionMessage = "💳 Доступные тарифы:\n\n";
-
-      plans?.forEach((plan) => {
-        const emoji = plan.price === 0 ? "🆓" : "💳";
-        if (plan.type === "subscription") {
-          subscriptionMessage += `${emoji} ${plan.name} - ${
-            plan.price / 100
-          }₽\n`;
-        } else if (plan.type === "one_time") {
-          subscriptionMessage += `${emoji} ${plan.name} - ${
-            plan.price / 100
-          }₽\n`;
-        }
-        if (plan.description) {
-          subscriptionMessage += `   ${plan.description}\n`;
-        }
-        subscriptionMessage += "\n";
-      });
       const isTest = message === "/subscriptions_test";
+      const subscriptionMessage = isTest
+        ? "💳 Доступные тарифы для теста:\n\n"
+        : "💳 Доступные тарифы:\n\n";
 
       // Создаем inline кнопки для каждого тарифа
       const keyboard = {
         inline_keyboard: plans?.map((plan) => [{
-          text: `💳 Купить ${plan.name}`,
+          text: `💳 ${plan.name} за ${plan.price / 100}₽`,
           callback_data: isTest ? `plan_test_${plan.id}` : `plan_${plan.id}`,
         }]) || [],
       };
