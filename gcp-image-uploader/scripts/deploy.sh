@@ -1,5 +1,12 @@
 #!/bin/bash
 
+source supabase/functions/image-generator/.env
+
+echo "GEMINI_API_KEY: $GEMINI_API_KEY"
+export GEMINI_API_KEY="$GEMINI_API_KEY"
+
+cd gcp-image-uploader
+
 # Собираем Docker образ
 gcloud builds submit --tag eu.gcr.io/$(gcloud config get-value project)/image-uploader
 
@@ -16,3 +23,5 @@ gcloud run deploy image-uploader \
 echo "Сервис успешно развернут на Google Cloud Run!"
 echo "URL сервиса:"
 gcloud run services describe image-uploader --region us-central1 --format="value(status.url)"
+
+cd ..

@@ -10,27 +10,13 @@
 ## Запуск локально
 
 ```bash
-# Установка зависимостей
-go mod tidy
-
-# Установка переменной окружения
-export GEMINI_API_KEY="<GEMINI_API_KEY>"
-
-# Запуск сервера
-go run main.go
+bash gcp-image-uploader/scripts/run.sh
 ```
 
 ## Деплой
 
 ```bash
-# 1. Установите переменную окружения
-export GEMINI_API_KEY="<GEMINI_API_KEY>"
-
-# 2. Сделайте скрипт исполняемым
-chmod +x deploy.sh
-
-# 3. Запустите развертывание
-./deploy.sh
+bash gcp-image-uploader/scripts/deploy.sh
 ```
 
 ## API Endpoint
