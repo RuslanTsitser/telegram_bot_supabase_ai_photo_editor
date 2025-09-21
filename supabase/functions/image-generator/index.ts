@@ -4,6 +4,7 @@ import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { processImageGroup } from "./processImageGroup.ts";
 import { generateImageWithGemini } from "./src/api/generateImageWithGemini.ts";
+import { onboarding } from "./src/bot/onboarding.ts";
 import {
   addImageToGroup,
   createImageGroup,
@@ -70,9 +71,7 @@ bot.on("message", async (ctx) => {
     const message = ctx.message.text;
 
     if (message === "/start") {
-      await ctx.reply(
-        "Привет! Я бот для генерации фотографий. Отправь мне фотографию, добавь описание и я сгенерирую для тебя новое фото",
-      );
+      await onboarding(ctx);
       return;
     }
 
@@ -137,6 +136,12 @@ bot.on("message", async (ctx) => {
 
   // Handle photo messages
   if (ctx.message.photo) {
+    if (ctx.message.caption === "file_id" && chatType === "private") {
+      const fileId = ctx.message.photo[0].file_id;
+      await ctx.reply(fileId);
+      return;
+    }
+
     const mediaGroup = ctx.message.media_group_id;
     const userId = ctx.from?.id;
     const user = await getUserByTelegramId(supabase, userId);
