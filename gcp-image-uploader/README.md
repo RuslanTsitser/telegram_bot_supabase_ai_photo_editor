@@ -27,8 +27,8 @@ bash gcp-image-uploader/scripts/deploy.sh
 curl -X POST http://localhost:8080/upload \
   -H "Content-Type: application/json" \
   -d '{
-    "imageUrl": "https://api.telegram.org/file/bot8017415486:AAFNOhR1ENhfhKqM133aMY4U5ORm4sUfGK4/photos/file_49.jpg",
+    "imageUrl": "https://api.telegram.org/file/bot<BOT_TOKEN>/photos/file_49.jpg",
     "caption": "Нужно рядом с этим велосипедом поставить эту машину",
-    "otherImages": ["https://api.telegram.org/file/bot8017415486:AAFNOhR1ENhfhKqM133aMY4U5ORm4sUfGK4/photos/file_48.jpg"]
+    "otherImages": ["https://api.telegram.org/file/bot<BOT_TOKEN>/photos/file_48.jpg"]
   }' | jq -r '.imageData' | base64 -d > generated_image.png
 ```
