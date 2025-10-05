@@ -3,7 +3,7 @@ console.log(`Function "image-generator" up and running!`);
 import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { processImageGroup } from "./processImageGroup.ts";
-import { generateImageWithGemini } from "./src/api/generateImageWithGemini.ts";
+import { generateImageWithPiapi } from "./src/api/generateImageWithPiapi.ts";
 import { onboarding } from "./src/bot/onboarding.ts";
 import {
   addImageToGroup,
@@ -22,18 +22,15 @@ import {
   getPremiumStatus,
 } from "./src/database/premium.ts";
 import { getUserByTelegramId, upsertUser } from "./src/database/users.ts";
-import { deleteImageFromStorage } from "./src/storage/deleteImageFromStorage.ts";
-import { saveImageToStorage } from "./src/storage/saveImageToStorage.ts";
 import { getImageUrlFromTelegram } from "./src/telegram/getImageUrlFromTelegram.ts";
 import { createSubscriptionInvoice } from "./src/telegram/subscriptionHandlers.ts";
-import { generateFileName } from "./src/utils/storage.ts";
 
 const bot = new Bot(Deno.env.get("BOT_TOKEN") || "");
 
 // Initialize Supabase client
 const supabase = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  Deno.env.get("SUPABASE_URL") ?? "", // TODO: add supabase url
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "", // TODO: add supabase service role key
 );
 
 bot.on("message", async (ctx) => {
@@ -238,7 +235,7 @@ bot.on("message", async (ctx) => {
       const caption = ctx.message.caption;
       await ctx.reply("Понял, генерирую фото...");
       // Загружаем изображение через внешний API
-      const uploadResult = await generateImageWithGemini(
+      const uploadResult = await generateImageWithPiapi(
         photoUrl,
         caption || "Верни такое же изображение в мультяшном стиле",
       );
@@ -248,32 +245,20 @@ bot.on("message", async (ctx) => {
       }
 
       try {
-        // Сохраняем в Supabase Storage
-        const fileName = generateFileName();
-        const result = await saveImageToStorage(
-          supabase,
-          uploadResult.imageData,
-          fileName,
-        );
-        const imageUrl = result?.publicUrl;
-        const path = result?.path;
+        const url = uploadResult.imageData;
 
-        if (!imageUrl) {
+        if (!url) {
           await ctx.reply("Ошибка при сохранении изображения");
           return;
         }
 
         // Отправляем изображение по URL
-        await ctx.replyWithPhoto(imageUrl);
-        await ctx.replyWithDocument(imageUrl, {
+        await ctx.replyWithPhoto(url);
+        await ctx.replyWithDocument(url, {
           caption: "Ваше фото готово!",
         });
         if (limits.limit !== -1) {
           await decrementGenerationLimit(supabase, user.id);
-        }
-        if (path) {
-          // delete image from storage
-          await deleteImageFromStorage(supabase, path);
         }
       } catch (error) {
         await ctx.reply("Не удалось обработать изображение " + error);

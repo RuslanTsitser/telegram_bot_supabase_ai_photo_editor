@@ -1,6 +1,6 @@
 import { Bot } from "https://deno.land/x/grammy@v1.8.3/bot.ts";
 import SupabaseClient from "https://esm.sh/@supabase/supabase-js@2.49.4/dist/module/SupabaseClient.js";
-import { generateImageWithGemini } from "./src/api/generateImageWithGemini.ts";
+import { generateImageWithPiapi } from "./src/api/generateImageWithPiapi.ts";
 import {
   getGroupImages,
   updateGroupStatus,
@@ -9,10 +9,7 @@ import {
   canUserGenerate,
   decrementGenerationLimit,
 } from "./src/database/premium.ts";
-import { deleteImageFromStorage } from "./src/storage/deleteImageFromStorage.ts";
-import { saveImageToStorage } from "./src/storage/saveImageToStorage.ts";
 import { getImageUrlFromTelegram } from "./src/telegram/getImageUrlFromTelegram.ts";
-import { generateFileName } from "./src/utils/storage.ts";
 
 /**
  * Обрабатывает завершенную группу изображений
@@ -110,10 +107,10 @@ export async function processImageGroup(
       }`,
     );
 
-    // Генерируем изображение с помощью Gemini
-    const uploadResult = await generateImageWithGemini(
-      imageUrls[0], // Основное изображение
-      caption,
+    const uploadResult = await generateImageWithPiapi(
+      imageUrls[0],
+      caption.replace("piapi", "") ||
+        "Верни такое же изображение в мультяшном стиле",
       imageUrls.slice(1),
     );
 
@@ -127,15 +124,7 @@ export async function processImageGroup(
       return;
     }
 
-    // Сохраняем результат в Supabase Storage
-    const fileName = generateFileName();
-    const result = await saveImageToStorage(
-      supabase,
-      uploadResult.imageData,
-      fileName,
-    );
-
-    if (!result?.publicUrl) {
+    if (!uploadResult.imageData) {
       console.log("Failed to save generated image for group:", groupId);
       await updateGroupStatus(supabase, groupId, "failed");
       await bot.api.sendMessage(
@@ -148,8 +137,8 @@ export async function processImageGroup(
     console.log(
       `Sending result to user ${user.telegram_id} (${user.telegram_first_name})`,
     );
-    await bot.api.sendPhoto(user.telegram_id, result.publicUrl);
-    await bot.api.sendDocument(user.telegram_id, result.publicUrl, {
+    await bot.api.sendPhoto(user.telegram_id, uploadResult.imageData);
+    await bot.api.sendDocument(user.telegram_id, uploadResult.imageData, {
       caption: "Ваше фото готово!",
     });
 
@@ -161,11 +150,6 @@ export async function processImageGroup(
 
     // Обновляем статус на "completed"
     await updateGroupStatus(supabase, groupId, "completed");
-
-    // Удаляем временный файл
-    if (result.path) {
-      await deleteImageFromStorage(supabase, result.path);
-    }
   } catch (error) {
     console.error("Error processing image group:", error);
     await updateGroupStatus(supabase, groupId, "failed");
