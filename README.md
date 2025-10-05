@@ -12,9 +12,8 @@ Telegram бот, который помогает генерировать изо
 
 ## 📋 Требования
 
-- Node.js 18+
-- Deno 1.40+
-- Go 1.21+
+- Deno 1.40+ (для Supabase Edge Functions)
+- Go 1.21+ (для GCP Image Uploader)
 - Supabase аккаунт
 - Telegram Bot Token
 - Google Gemini API ключ
