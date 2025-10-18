@@ -37,6 +37,11 @@ export async function onboarding(ctx: Context, supabase?: SupabaseClient) {
         media:
           "AgACAgIAAxkBAAICm2jQFzT8662KSxUsHSPbrLtRA-ULAAKt-DEbDMWJSkYgtCiYMdZFAQADAgADcwADNgQ",
       },
+      {
+        type: "photo",
+        media:
+          "AgACAgIAAxkBAAIEU2jzxnYkZ-gWnZeS8WUuyJbi_0XgAAJQBTIbJ_ihS1kF4YhPYlFPAQADAgADcwADNgQ",
+      },
       // {
       //   type: "photo",
       //   media:
