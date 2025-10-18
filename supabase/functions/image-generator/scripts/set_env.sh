@@ -1,1 +1,0 @@
-supabase secrets set --env-file supabase/functions/image-generator/.env --project-ref jutmiptqsbfxntlckuhu
