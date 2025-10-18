@@ -14,30 +14,20 @@ export const en = {
   set_promo: "Promo code",
 
   // Onboarding
-  onboarding_welcome: "👋 Hello! I'm a photo generation bot.",
-  onboarding_description:
-    "Send me a photo, add a description and I'll generate a new photo for you",
-  onboarding_rules: "Simple rules:",
-  onboarding_rule1: "1) Choose any photo from your gallery",
-  onboarding_rule2:
-    "2) Add a description of what you want to do with this photo",
-  onboarding_rule3: "3) Send it to me",
-  onboarding_rule4: "4) I'll generate a new photo for you",
-  onboarding_examples: "Below are screenshots of generated photo examples",
-  onboarding_important: "⚠️ Important:",
-  onboarding_tip1:
-    "- Describe in as much detail as possible what you want to do with your photo",
-  onboarding_tip2:
-    "- If you don't add a description, I'll generate a photo in cartoon style",
-  onboarding_tip3: "- I can't generate images from description only yet",
-  onboarding_tip4:
-    "- Sometimes I may have problems with generation. In that case, the attempt won't be counted and you can try again",
-  onboarding_initial_generations: "📝 You initially have 2 generations.",
-  onboarding_try_buy:
-    "Try it, and if you like it, you can buy additional generations.",
-  onboarding_subscribe_command:
-    "💫 To buy additional generations, press /subscriptions",
-  onboarding_limits_command: "🔢 To view available generations, press /limits",
+  onboarding_welcome: "🪄 Hello!",
+  onboarding_description: "I turn ordinary photos into art and fantasies ✨",
+  onboarding_instructions: "Send me a photo and tell me what to do with it:",
+  onboarding_example1: '"add a cat" 🐱 or "make it Pixar style" 🎬',
+  onboarding_example_photo: "📸 Example:",
+  onboarding_example_result: "Ordinary photo → Art with cat 🐾",
+  onboarding_free_generations:
+    "💡 You have **2 free generations** — try it right now!",
+  onboarding_subscribe_hint:
+    "If you like it, you can buy more 👉 /subscriptions",
+  onboarding_limits_hint: "Check limits 👉 /limits",
+
+  // Follow-up message for inactive users
+  onboarding_followup: "Try: add a cat 🐱 or make it Pixar style 🎬",
 
   // Payments
   payment_success:
