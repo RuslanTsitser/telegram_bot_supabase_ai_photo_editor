@@ -22,37 +22,7 @@ Telegram бот, который помогает генерировать изо
 - Telegram Bot Token
 - Google Gemini API ключ
 
-## Структура проекта
-
-```structure
-
-telegram_bot_supabase_ai_photo_editor/
-|--- gcp-image-uploader/                   # Внешний API для генерации изображений с Google Gemini AI
-    |--- deploy.sh                         # Деплой
-    |--- Dockerfile                        # Dockerfile
-    |--- main.go                           # Основной файл
-    |--- go.mod                            # Модули
-    |--- go.sum                            # Сумма модулей
-    |--- README.md                         # README
-|--- supabase/
-    |--- functions/
-        |--- image-generator/              # Генератор изображений с Google Gemini AI
-            |--- scripts/               # Скрипты
-                |--- deploy.sh             # Деплой
-                |--- run.sh                # Запуск локально
-                |--- set_bot.sh            # Настройка webhook в боте
-                |--- set_env.sh            # Настройка переменных окружения
-            |--- src/               # Скрипты
-                |--- api/                  # API
-                |--- storage/              # Storage
-                |--- telegram/             # Telegram обработчики
-                |--- utils/                # Утилиты
-            |--- .env                  # Переменные окружения
-            |--- .env.example          # Пример переменных окружения
-            |--- deno.json             # Deno зависимости
-            |--- index.ts              # Основной файл бота
-|--- README.md
-```
+## [Структура проекта](docs/src.md)
 
 ## ⚙️ Настройка
 
