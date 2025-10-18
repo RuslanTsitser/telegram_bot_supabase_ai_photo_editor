@@ -7,17 +7,74 @@ export async function upsertUser(ctx: Context, supabase: SupabaseClient) {
   if (!ctx.from) return;
 
   console.log("upsertUser", ctx.from);
-  const { data, error } = await supabase.rpc("upsert_user", {
-    telegram_id_param: ctx.from.id,
-    telegram_username_param: ctx.from.username || null,
-    telegram_first_name_param: ctx.from.first_name || null,
-    telegram_last_name_param: ctx.from.last_name || null,
-    telegram_photo_url_param: null,
-    language_param: ctx.from.language_code || "ru",
-  });
 
-  if (error) console.error(error);
-  else console.log(data);
+  const userData = {
+    telegram_id: ctx.from.id,
+    telegram_username: ctx.from.username || null,
+    telegram_first_name: ctx.from.first_name || null,
+    telegram_last_name: ctx.from.last_name || null,
+    telegram_photo_url: null,
+    language: ctx.from.language_code || "ru",
+    updated_at: new Date().toISOString(),
+  };
+
+  // Сначала пытаемся найти существующего пользователя
+  const { data: existingUser } = await supabase
+    .from("users")
+    .select("id")
+    .eq("telegram_id", ctx.from.id)
+    .single();
+
+  let result;
+  if (existingUser) {
+    // Обновляем существующего пользователя
+    const { data, error } = await supabase
+      .from("users")
+      .update(userData)
+      .eq("id", existingUser.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Ошибка обновления пользователя:", error);
+      return;
+    }
+    result = data;
+  } else {
+    // Создаем нового пользователя
+    const { data, error } = await supabase
+      .from("users")
+      .insert({
+        ...userData,
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Ошибка создания пользователя:", error);
+      return;
+    }
+    result = data;
+
+    // Создаем запись премиум статуса для нового пользователя
+    const { error: premiumError } = await supabase
+      .from("premium_statuses")
+      .insert({
+        user_id: result.id,
+        is_premium: false,
+        generation_limit: 2,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+    if (premiumError) {
+      console.error("Ошибка создания премиум статуса:", premiumError);
+    }
+  }
+
+  console.log("Пользователь успешно обработан:", result);
+  return result;
 }
 
 // Функция для получения пользователя по Telegram ID
