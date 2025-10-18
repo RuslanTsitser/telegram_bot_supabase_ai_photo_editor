@@ -21,9 +21,14 @@ import {
   decrementGenerationLimit,
   getPremiumStatus,
 } from "./src/database/premium.ts";
-import { getUserByTelegramId, upsertUser } from "./src/database/users.ts";
+import {
+  getUserByTelegramId,
+  getUserLanguage,
+  upsertUser,
+} from "./src/database/users.ts";
 import { getImageUrlFromTelegram } from "./src/telegram/getImageUrlFromTelegram.ts";
 import { createSubscriptionInvoice } from "./src/telegram/subscriptionHandlers.ts";
+import { createI18n } from "./src/utils/i18n.ts";
 
 const bot = new Bot(Deno.env.get("BOT_TOKEN") || "");
 
@@ -40,6 +45,9 @@ bot.on("message", async (ctx) => {
   // Обрабатываем пользователя при каждом сообщении
   await upsertUser(ctx, supabase);
 
+  const userLanguage = await getUserLanguage(supabase, ctx.from?.id || 0);
+  const i18n = createI18n(userLanguage);
+
   // Handle successful payment
   if (ctx.message.successful_payment) {
     try {
@@ -50,16 +58,16 @@ bot.on("message", async (ctx) => {
 
       if (result.success) {
         await ctx.reply(
-          `✅ Платеж успешно обработан! Купленный тариф: ${result.planName}`,
+          i18n.t("payment_success", { planName: result.planName || "" }),
         );
       } else {
-        await ctx.reply(`❌ Ошибка при обработке платежа: ${result.message}`);
+        await ctx.reply(
+          i18n.t("payment_error", { message: result.message || "" }),
+        );
       }
     } catch (error) {
       console.error("Ошибка при обработке успешного платежа:", error);
-      await ctx.reply(
-        "✅ Платеж получен, но произошла ошибка при обновлении статуса.",
-      );
+      await ctx.reply(i18n.t("payment_received_error") || "");
     }
   }
 
@@ -68,7 +76,7 @@ bot.on("message", async (ctx) => {
     const message = ctx.message.text;
 
     if (message === "/start") {
-      await onboarding(ctx);
+      await onboarding(ctx, supabase);
       return;
     }
 
@@ -76,8 +84,8 @@ bot.on("message", async (ctx) => {
       const plans = await getSubscriptionPlans(supabase);
       const isTest = message === "/subscriptions_test";
       const subscriptionMessage = isTest
-        ? "💳 Доступные тарифы для теста:\n\n"
-        : "💳 Доступные тарифы:\n\n";
+        ? i18n.t("subscriptions_test_title")
+        : i18n.t("subscriptions_title");
 
       // Создаем inline кнопки для каждого тарифа
       const keyboard = {
@@ -95,28 +103,33 @@ bot.on("message", async (ctx) => {
       const userId = ctx.from?.id;
       const user = await getUserByTelegramId(supabase, userId);
       if (!user) {
-        await ctx.reply("Пользователь не найден");
+        await ctx.reply(i18n.t("user_not_found"));
         return;
       }
       const premiumStatus = await getPremiumStatus(supabase, user.id);
       if (!premiumStatus) {
-        await ctx.reply("Информация о лимитах не найдена");
+        await ctx.reply(i18n.t("limits_not_found"));
         return;
       }
-      let message = `Текущий статус:\n`;
+      let message = `${i18n.t("limits_title")}\n`;
       if (premiumStatus.is_premium) {
-        message += `- Премиум навсегда. Докупать ничего не нужно`;
+        message += `- ${i18n.t("premium_active")}. Докупать ничего не нужно`;
       }
       if (premiumStatus.premium_expires_at) {
         const expiresAt = new Date(premiumStatus.premium_expires_at);
         const now = new Date();
         if (expiresAt > now) {
-          message += `- Подписка до ${expiresAt.toLocaleDateString()}`;
+          message += `- ${
+            i18n.t("subscription_expires", {
+              date: expiresAt.toLocaleDateString(),
+            })
+          }`;
         }
       }
 
-      message +=
-        `- Количество доступных генераций: ${premiumStatus.generation_limit}`;
+      message += `- ${
+        i18n.t("free_generations")
+      } ${premiumStatus.generation_limit}`;
 
       await ctx.reply(message);
       return;
@@ -124,9 +137,7 @@ bot.on("message", async (ctx) => {
 
     if (!message.startsWith("/")) {
       // TODO: add text message handler. Generate image with Gemini without picture.
-      await ctx.reply(
-        "Пришлите картинку и описание, чтобы я сгенерировал для тебя новое фото",
-      );
+      await ctx.reply(i18n.t("generation_instruction"));
       return;
     }
   }
@@ -143,17 +154,17 @@ bot.on("message", async (ctx) => {
     const userId = ctx.from?.id;
     const user = await getUserByTelegramId(supabase, userId);
     if (!user) {
-      await ctx.reply("Пользователь не найден");
+      await ctx.reply(i18n.t("user_not_found"));
       return;
     }
     const limits = await canUserGenerate(supabase, user.id);
     if (!limits) {
-      await ctx.reply("Информация о возможности генерации не найдена");
+      await ctx.reply(i18n.t("generation_info_not_found"));
       return;
     }
 
     if (!limits.canGenerate) {
-      await ctx.reply(limits.reason || "У тебя нет доступа к генерации");
+      await ctx.reply(limits.reason || i18n.t("no_access"));
       return;
     }
 
@@ -166,7 +177,7 @@ bot.on("message", async (ctx) => {
         // Создаем новую группу
         group = await createImageGroup(supabase, mediaGroup, user.id);
         if (!group) {
-          await ctx.reply("Ошибка при создании группы изображений");
+          await ctx.reply(i18n.t("generation_upload_error"));
           return;
         }
       }
@@ -233,14 +244,14 @@ bot.on("message", async (ctx) => {
 
     if (photoUrl) {
       const caption = ctx.message.caption;
-      await ctx.reply("Понял, генерирую фото...");
+      await ctx.reply(i18n.t("generation_processing"));
       // Загружаем изображение через внешний API
       const uploadResult = await generateImageWithPiapi(
         photoUrl,
         caption || "Верни такое же изображение в мультяшном стиле",
       );
       if (!uploadResult) {
-        await ctx.reply("Ошибка при загрузке изображения в Google AI");
+        await ctx.reply(i18n.t("generation_error"));
         return;
       }
 
@@ -248,23 +259,25 @@ bot.on("message", async (ctx) => {
         const url = uploadResult.imageData;
 
         if (!url) {
-          await ctx.reply("Ошибка при сохранении изображения");
+          await ctx.reply(i18n.t("generation_save_error"));
           return;
         }
 
         // Отправляем изображение по URL
         await ctx.replyWithPhoto(url);
         await ctx.replyWithDocument(url, {
-          caption: "Ваше фото готово!",
+          caption: i18n.t("generation_success"),
         });
         if (limits.limit !== -1) {
           await decrementGenerationLimit(supabase, user.id);
         }
       } catch (error) {
-        await ctx.reply("Не удалось обработать изображение " + error);
+        await ctx.reply(
+          i18n.t("generation_process_error", { error: String(error) }),
+        );
       }
     } else {
-      await ctx.reply("Ошибка при получении фото");
+      await ctx.reply(i18n.t("generation_photo_error"));
     }
   }
 });

@@ -13,6 +13,7 @@ export async function upsertUser(ctx: Context, supabase: SupabaseClient) {
     telegram_first_name_param: ctx.from.first_name || null,
     telegram_last_name_param: ctx.from.last_name || null,
     telegram_photo_url_param: null,
+    language_param: ctx.from.language_code || "ru",
   });
 
   if (error) console.error(error);
@@ -35,4 +36,22 @@ export async function getUserByTelegramId(
   }
 
   return user;
+}
+
+export async function getUserLanguage(
+  supabase: SupabaseClient,
+  telegramId: number,
+): Promise<string> {
+  const { data, error } = await supabase
+    .from("users")
+    .select("language")
+    .eq("telegram_id", telegramId)
+    .single();
+
+  if (error || !data) {
+    console.error("Ошибка получения языка пользователя:", error);
+    return "ru"; // По умолчанию русский
+  }
+
+  return data.language || "ru";
 }

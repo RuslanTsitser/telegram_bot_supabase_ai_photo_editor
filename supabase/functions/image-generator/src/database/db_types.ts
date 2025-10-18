@@ -5,6 +5,7 @@ export interface User {
   telegram_first_name?: string;
   telegram_last_name?: string;
   telegram_photo_url?: string;
+  language?: string;
   created_at: string;
   updated_at: string;
 }
