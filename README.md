@@ -17,10 +17,9 @@ Telegram бот, который помогает генерировать изо
 ## 📋 Требования
 
 - Deno 1.40+ (для Supabase Edge Functions)
-- Go 1.21+ (для GCP Image Uploader)
 - Supabase аккаунт
 - Telegram Bot Token
-- Google Gemini API ключ
+- Piapi API ключ
 
 ## [Структура проекта](docs/src.md)
 
@@ -38,18 +37,10 @@ cd telegram_bot_supabase_ai_photo_editor
 Скопируйте `.env.example` в `.env` и заполните переменные:
 
 ```bash
-cp supabase/functions/image-generator/.env.example supabase/functions/image-generator/.env
+cp .env.example .env
 ```
 
-**Обязательные переменные:**
-
-- `BOT_TOKEN` - токен Telegram бота
-- `BOT_FUNCTION_SECRET` - секрет для webhook
-- `GEMINI_API_KEY` - API ключ Google Gemini
-- `YOOKASSA_PROVIDER_TOKEN` - токен Yookassa для продакшена
-- `YOOKASSA_PROVIDER_TOKEN_TEST` - тестовый токен Yookassa
-- `PROJECT_ID` - ID проекта Supabase
-- `IMAGE_UPLOADER_API_URL` - URL API для загрузки изображений
+[**Обязательные переменные:**](./.env.example)
 
 ### 3. Запуск локально
 
