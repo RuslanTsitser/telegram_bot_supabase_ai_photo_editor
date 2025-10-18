@@ -118,6 +118,65 @@ export async function createPiapiTask(
 }
 
 /**
+ * Создает задачу генерации изображения по тексту через Piapi API (без исходного изображения)
+ */
+export async function createPiapiTextTask(
+  prompt: string,
+  numImages: 1 | 2 | 3 | 4 = 1,
+  outputFormat: "jpg" | "png" = "png",
+): Promise<string | null> {
+  try {
+    const apiKey = Deno.env.get("PIAPI_KEY");
+    if (!apiKey) {
+      console.error("PIAPI_KEY environment variable is not set");
+      return null;
+    }
+
+    const requestBody: PiapiTaskRequest = {
+      model: "gemini",
+      task_type: "gemini-2.5-flash-image",
+      input: {
+        prompt: prompt,
+        image_urls: [], // Пустой массив для генерации по тексту
+        num_images: numImages,
+        output_format: outputFormat,
+      },
+    };
+
+    console.log("Creating Piapi text task with prompt:", prompt);
+    console.log("Request body:", JSON.stringify(requestBody, null, 2));
+
+    const response = await fetch("https://api.piapi.ai/api/v1/task", {
+      method: "POST",
+      headers: {
+        "X-API-Key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      console.error("Piapi API error:", response.status, response.statusText);
+      return null;
+    }
+
+    const data: PiapiTaskResponse = await response.json();
+    console.log("Piapi text task response:", data);
+    console.log(
+      "Piapi text task created:",
+      data.data.task_id,
+      "Status:",
+      data.data.status,
+    );
+
+    return data.data.task_id;
+  } catch (error) {
+    console.error("Error creating Piapi text task:", error);
+    return null;
+  }
+}
+
+/**
  * Проверяет статус задачи в Piapi API
  */
 export async function checkPiapiTaskStatus(
@@ -246,6 +305,47 @@ export async function generateImageWithPiapi(
     };
   } catch (error) {
     console.error("Error generating image with Piapi:", error);
+    return null;
+  }
+}
+
+/**
+ * Генерирует изображение по тексту через Piapi API и возвращает URL изображения
+ */
+export async function generateImageFromText(
+  prompt: string,
+  numImages: 1 | 2 | 3 | 4 = 1,
+  outputFormat: "jpg" | "png" = "png",
+): Promise<{ imageData: string; mimeType: string } | null> {
+  try {
+    console.log("Starting Piapi text-to-image generation with prompt:", prompt);
+
+    // Создаем задачу
+    const taskId = await createPiapiTextTask(prompt, numImages, outputFormat);
+
+    if (!taskId) {
+      console.error("Failed to create Piapi text task");
+      return null;
+    }
+
+    // Ждем завершения задачи
+    const result = await waitForPiapiTaskCompletion(taskId);
+    if (!result || !result.data.output || !result.data.output.image_urls) {
+      console.error("Piapi text task did not return image URLs");
+      return null;
+    }
+
+    console.log("Piapi text-to-image generation completed successfully");
+    console.log("Generated image URLs:", result.data.output.image_urls);
+
+    const url = result.data.output.image_urls[0];
+
+    return {
+      imageData: url,
+      mimeType: "image/png",
+    };
+  } catch (error) {
+    console.error("Error generating image from text with Piapi:", error);
     return null;
   }
 }

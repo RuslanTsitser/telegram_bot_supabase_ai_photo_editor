@@ -3,7 +3,10 @@ console.log(`Function "image-generator" up and running!`);
 import { Bot, webhookCallback } from "https://deno.land/x/grammy@v1.8.3/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { processImageGroup } from "./processImageGroup.ts";
-import { generateImageWithPiapi } from "./src/api/generateImageWithPiapi.ts";
+import {
+  generateImageFromText,
+  generateImageWithPiapi,
+} from "./src/api/generateImageWithPiapi.ts";
 import { onboarding } from "./src/bot/onboarding.ts";
 import {
   addImageToGroup,
@@ -136,8 +139,65 @@ bot.on("message", async (ctx) => {
     }
 
     if (!message.startsWith("/")) {
-      // TODO: add text message handler. Generate image with Gemini without picture.
-      await ctx.reply(i18n.t("generation_instruction"));
+      // Обработка текстовых сообщений для генерации изображений по тексту
+      const userId = ctx.from?.id;
+      const user = await getUserByTelegramId(supabase, userId);
+      if (!user) {
+        await ctx.reply(i18n.t("user_not_found"));
+        return;
+      }
+
+      const limits = await canUserGenerate(supabase, user.id);
+      if (!limits) {
+        await ctx.reply(i18n.t("generation_info_not_found"));
+        return;
+      }
+
+      if (!limits.canGenerate) {
+        await ctx.reply(limits.reason || i18n.t("no_access"));
+        return;
+      }
+
+      // Проверяем, что сообщение не пустое
+      if (!message.trim()) {
+        await ctx.reply(i18n.t("text_generation_empty_prompt"));
+        return;
+      }
+
+      await ctx.reply(i18n.t("text_generation_processing"));
+
+      try {
+        // Генерируем изображение по тексту
+        const result = await generateImageFromText(message.trim());
+
+        if (!result) {
+          await ctx.reply(i18n.t("text_generation_error"));
+          return;
+        }
+
+        const url = result.imageData;
+
+        if (!url) {
+          await ctx.reply(i18n.t("generation_save_error"));
+          return;
+        }
+
+        // Отправляем изображение по URL
+        await ctx.replyWithPhoto(url);
+        await ctx.replyWithDocument(url, {
+          caption: i18n.t("text_generation_success"),
+        });
+
+        // Уменьшаем лимит генераций
+        if (limits.limit !== -1) {
+          await decrementGenerationLimit(supabase, user.id);
+        }
+      } catch (error) {
+        console.error("Error generating image from text:", error);
+        await ctx.reply(
+          i18n.t("text_generation_error"),
+        );
+      }
       return;
     }
   }

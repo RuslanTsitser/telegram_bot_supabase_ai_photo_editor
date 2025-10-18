@@ -16,8 +16,10 @@ export const en = {
   // Onboarding
   onboarding_welcome: "🪄 Hello!",
   onboarding_description: "I turn ordinary photos into art and fantasies ✨",
-  onboarding_instructions: "Send me a photo and tell me what to do with it:",
-  onboarding_example1: '"add a cat" 🐱 or "make it Pixar style" 🎬',
+  onboarding_instructions:
+    "Send me a photo and tell me what to do with it, or just describe an image:",
+  onboarding_example1:
+    '"add a cat" 🐱, "make it Pixar style" 🎬 or "cat in space" 🚀',
   onboarding_example_photo: "📸 Example:",
   onboarding_example_result: "Ordinary photo → Art with cat 🐾",
   onboarding_free_generations:
@@ -67,6 +69,14 @@ export const en = {
   generation_upload_error: "Error creating image group",
   generation_photo_error: "Error getting photo",
   generation_process_error: "Failed to process image {error}",
+
+  // Text-to-image generation
+  text_generation_instruction:
+    "Write a description of the image you want to create, for example: 'cat in space' or 'sunset over the sea'",
+  text_generation_processing: "Got it, creating image from your description...",
+  text_generation_success: "Your image is ready!",
+  text_generation_error: "Error generating image from text",
+  text_generation_empty_prompt: "Please describe what you want to create",
 
   // Access
   user_not_found: "User not found",
