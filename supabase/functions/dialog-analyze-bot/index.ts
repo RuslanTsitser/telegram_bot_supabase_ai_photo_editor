@@ -258,39 +258,63 @@ bot.on("edited_message", async (ctx) => {
     );
 
     console.log(
-      `Attempting to insert edited message: chat_id=${chatId}, message_id=${messageId}, bot_name=${currentBotName}`,
+      `Attempting to update edited message: chat_id=${chatId}, message_id=${messageId}, bot_name=${currentBotName}`,
     );
 
-    // Сохраняем отредактированное сообщение в таблицу chat_messages
-    const { data, error } = await supabase
+    // Обновляем отредактированное сообщение в таблице chat_messages
+    const { data: updateData, error: updateError } = await supabase
       .from("chat_messages")
-      .insert({
-        chat_id: chatId,
-        message_id: messageId,
-        bot_name: currentBotName,
+      .update({
         message_content: messageContent,
       })
+      .eq("chat_id", chatId)
+      .eq("message_id", messageId)
+      .eq("bot_name", currentBotName)
       .select()
       .single();
 
-    if (error) {
-      // Если ошибка из-за дубликата (unique constraint), это нормально
-      if (error.code === "23505") {
+    if (updateError) {
+      // Если запись не найдена, создаем новую
+      if (updateError.code === "PGRST116") {
         console.log(
-          `Edited message already exists: chat_id=${chatId}, message_id=${messageId}`,
+          `Message not found, inserting new: chat_id=${chatId}, message_id=${messageId}, bot_name=${currentBotName}`,
         );
+        const { data: insertData, error: insertError } = await supabase
+          .from("chat_messages")
+          .insert({
+            chat_id: chatId,
+            message_id: messageId,
+            bot_name: currentBotName,
+            message_content: messageContent,
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error("Error inserting edited chat message:", {
+            code: insertError.code,
+            message: insertError.message,
+            details: insertError.details,
+            hint: insertError.hint,
+            fullError: JSON.stringify(insertError, null, 2),
+          });
+        } else {
+          console.log(
+            `Edited message inserted successfully: chat_id=${chatId}, message_id=${messageId}, bot_name=${currentBotName}, id=${insertData?.id}`,
+          );
+        }
       } else {
-        console.error("Error inserting edited chat message:", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          fullError: JSON.stringify(error, null, 2),
+        console.error("Error updating edited chat message:", {
+          code: updateError.code,
+          message: updateError.message,
+          details: updateError.details,
+          hint: updateError.hint,
+          fullError: JSON.stringify(updateError, null, 2),
         });
       }
     } else {
       console.log(
-        `Edited message saved successfully: chat_id=${chatId}, message_id=${messageId}, bot_name=${currentBotName}, id=${data?.id}`,
+        `Edited message updated successfully: chat_id=${chatId}, message_id=${messageId}, bot_name=${currentBotName}, id=${updateData?.id}`,
       );
     }
   } catch (error) {
