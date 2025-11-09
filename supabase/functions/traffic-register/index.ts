@@ -1,5 +1,5 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +13,7 @@ interface TrafficUserData {
   name: string;
   traffic_source: string;
   app_name?: string;
+  answers?: Record<string, any>; // Ответы на вопросы формы
 }
 
 Deno.serve(async (req) => {
@@ -81,6 +82,11 @@ Deno.serve(async (req) => {
       insertData.app_name = body.app_name.trim();
     }
 
+    // Add answers if provided
+    if (body.answers && typeof body.answers === "object") {
+      insertData.answers = body.answers;
+    }
+
     const { data, error } = await supabase
       .from("traffic_users")
       .insert(insertData)
@@ -90,7 +96,10 @@ Deno.serve(async (req) => {
     if (error) {
       console.error("Error inserting traffic user:", error);
       return new Response(
-        JSON.stringify({ error: "Failed to save data", details: error.message }),
+        JSON.stringify({
+          error: "Failed to save data",
+          details: error.message,
+        }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -107,6 +116,7 @@ Deno.serve(async (req) => {
           name: data.name,
           traffic_source: data.traffic_source,
           app_name: data.app_name || null,
+          answers: data.answers || null,
         },
       }),
       {
@@ -125,4 +135,3 @@ Deno.serve(async (req) => {
     );
   }
 });
-

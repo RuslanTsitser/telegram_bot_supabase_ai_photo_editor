@@ -4,7 +4,7 @@ Edge функция для регистрации пользователей и 
 
 ## Описание
 
-Эта функция принимает данные о пользователях (email, имя, источник трафика и название приложения) и сохраняет их в таблице `traffic_users` базы данных Supabase.
+Эта функция принимает данные о пользователях (email, имя, источник трафика, название приложения и ответы на вопросы формы) и сохраняет их в таблице `traffic_users` базы данных Supabase.
 
 ## Использование
 
@@ -29,7 +29,12 @@ Content-Type: application/json
   "email": "user@example.com",
   "name": "Иван Иванов",
   "traffic_source": "google_ads",
-  "app_name": "MyApp"
+  "app_name": "MyApp",
+  "answers": {
+    "question_1": "ответ на вопрос 1",
+    "question_2": "ответ на вопрос 2",
+    "question_3": ["вариант 1", "вариант 2"]
+  }
 }
 ```
 
@@ -42,6 +47,7 @@ Content-Type: application/json
 **Опциональные поля:**
 
 - `app_name` - Название приложения (необязательно)
+- `answers` - Ответы на вопросы формы в формате JSON (необязательно)
 
 ### Ответ
 
@@ -55,7 +61,11 @@ Content-Type: application/json
     "email": "user@example.com",
     "name": "Иван Иванов",
     "traffic_source": "google_ads",
-    "app_name": "MyApp"
+    "app_name": "MyApp",
+    "answers": {
+      "question_1": "ответ на вопрос 1",
+      "question_2": "ответ на вопрос 2"
+    }
   }
 }
 ```
@@ -96,7 +106,11 @@ curl -X POST https://YOUR_PROJECT.supabase.co/functions/v1/traffic-register \
     "email": "user@example.com",
     "name": "Иван Иванов",
     "traffic_source": "google_ads",
-    "app_name": "MyApp"
+    "app_name": "MyApp",
+    "answers": {
+      "question_1": "ответ на вопрос 1",
+      "question_2": "ответ на вопрос 2"
+    }
   }'
 ```
 
@@ -114,7 +128,11 @@ const response = await fetch(
       email: 'user@example.com',
       name: 'Иван Иванов',
       traffic_source: 'google_ads',
-      app_name: 'MyApp'
+      app_name: 'MyApp',
+      answers: {
+        question_1: 'ответ на вопрос 1',
+        question_2: 'ответ на вопрос 2'
+      }
     })
   }
 );
@@ -136,7 +154,11 @@ data = {
     "email": "user@example.com",
     "name": "Иван Иванов",
     "traffic_source": "google_ads",
-    "app_name": "MyApp"
+    "app_name": "MyApp",
+    "answers": {
+        "question_1": "ответ на вопрос 1",
+        "question_2": "ответ на вопрос 2"
+    }
 }
 
 response = requests.post(url, json=data, headers=headers)
@@ -154,6 +176,7 @@ print(response.json())
 | `name` | VARCHAR(255) | Имя пользователя |
 | `traffic_source` | VARCHAR(255) | Источник трафика |
 | `app_name` | VARCHAR(255) | Название приложения (опционально) |
+| `answers` | JSONB | Ответы на вопросы формы в формате JSON (опционально) |
 | `created_at` | TIMESTAMPTZ | Дата создания записи |
 | `updated_at` | TIMESTAMPTZ | Дата последнего обновления |
 
@@ -168,9 +191,10 @@ print(response.json())
 ## Валидация
 
 - Обязательные поля: `email`, `name`, `traffic_source`
-- Опциональное поле: `app_name`
+- Опциональные поля: `app_name`, `answers`
 - Email проверяется на соответствие формату `user@domain.com`
 - Все строковые поля обрезаются от пробелов
+- Поле `answers` должно быть объектом (JSON), если передано
 
 ## Безопасность
 
